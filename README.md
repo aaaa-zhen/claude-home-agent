@@ -7,11 +7,10 @@
 
 <img width="1260" height="2736" alt="IMG_1570" src="https://github.com/user-attachments/assets/9812913d-5a3f-49ba-8862-ab44320b65dd" />
 <img width="1260" height="1047" alt="IMG_2077" src="https://github.com/user-attachments/assets/1e93e39a-f5ec-440a-9b70-97c50a74eeab" />
-![Uploading IMG_2884.PNG…]()
 
 
 
-Uploading IMG_2069.mp4…
+
 
 
 
