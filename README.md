@@ -5,11 +5,11 @@
 <!-- 在这里放一张效果截图 -->
 <!-- ![demo](docs/demo.jpg) -->
 
-<img width="1260" height="2736" alt="IMG_1570" src="https://github.com/user-attachments/assets/9812913d-5a3f-49ba-8862-ab44320b65dd" />
-<img width="1260" height="1047" alt="IMG_2077" src="https://github.com/user-attachments/assets/1e93e39a-f5ec-440a-9b70-97c50a74eeab" />
-<img alt="IMG_2884" src="IMG_2884.PNG" />
+<img width="360" alt="IMG_1570" src="https://github.com/user-attachments/assets/9812913d-5a3f-49ba-8862-ab44320b65dd" />
+<img width="360" alt="IMG_2077" src="https://github.com/user-attachments/assets/1e93e39a-f5ec-440a-9b70-97c50a74eeab" />
+<img width="360" alt="IMG_2884" src="IMG_2884.PNG" />
 
-<video src="https://github.com/user-attachments/assets/0f30d916-d256-4519-9beb-451c7c89673f" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/0f30d916-d256-4519-9beb-451c7c89673f" controls width="360"></video>
 
 
 
