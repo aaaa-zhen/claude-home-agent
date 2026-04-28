@@ -9,7 +9,7 @@
 <img width="1260" height="1047" alt="IMG_2077" src="https://github.com/user-attachments/assets/1e93e39a-f5ec-440a-9b70-97c50a74eeab" />
 <img alt="IMG_2884" src="IMG_2884.PNG" />
 
-https://github.com/aaaa-zhen/claude-home-agent/raw/main/IMG_2069.mp4
+<video src="https://github.com/user-attachments/assets/0f30d916-d256-4519-9beb-451c7c89673f" controls width="100%"></video>
 
 
 
