@@ -1,0 +1,19 @@
+[Unit]
+Description=weixin-agent session manager
+After=weixin-agent.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/weixin-agent
+ExecStart=/home/ubuntu/weixin-agent/venv/bin/python /home/ubuntu/weixin-agent/session-manager.py
+Restart=always
+RestartSec=10
+User=ubuntu
+EnvironmentFile=/home/ubuntu/weixin-agent/.env
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=weixin-session-mgr
+
+[Install]
+WantedBy=multi-user.target

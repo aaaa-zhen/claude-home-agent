@@ -1,0 +1,35 @@
+# Environment & secrets
+.env
+CLAUDE.md
+model.txt
+session-start.txt
+
+# Personal memory (use memory-templates/ as reference)
+memory/
+
+# Logs
+*.log
+monitor.log
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Temp files
+tmp/
+
+# Claude Code local config
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
