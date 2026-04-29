@@ -33,3 +33,4 @@ Thumbs.db
 *.swp
 *.swo
 *~
+train_query.sh

@@ -58,7 +58,7 @@ def ha_notify(message, title=None):
         if title:
             payload["title"] = title
         requests.post(
-            f"{HA_URL}/services/notify/mobile_app_zhen",
+            f"{HA_URL}/services/notify/mobile_app_your_phone",
             headers=HEADERS,
             json=payload,
             timeout=10
@@ -272,9 +272,95 @@ class LocationLogger:
         self.last_log = now
 
 
+class RedditDaily:
+    """Pushes one hot Reddit post every morning at 8:00 for English reading practice."""
+    SUBREDDITS = ["todayilearned", "explainlikeimfive", "LifeProTips", "YouShouldKnow", "Showerthoughts"]
+
+    PUSH_HOURS = [8, 22]  # 早上8点 + 晚上10点
+
+    def __init__(self):
+        self.pushed_slots = set()  # "2026-04-29-8", "2026-04-29-22"
+        self._sent_urls = set()    # avoid duplicate posts between morning/evening
+
+    def poll(self):
+        now = datetime.now()
+        if now.hour not in self.PUSH_HOURS:
+            return
+        slot = f"{now.strftime('%Y-%m-%d')}-{now.hour}"
+        if slot in self.pushed_slots:
+            return
+
+        self.pushed_slots.add(slot)
+        # Clean old slots (keep only today)
+        today = now.strftime('%Y-%m-%d')
+        self.pushed_slots = {s for s in self.pushed_slots if s.startswith(today)}
+        post = self._fetch_top_post()
+        if post:
+            msg = post['title']
+            try:
+                requests.post(
+                    f"{HA_URL}/services/notify/mobile_app_your_phone",
+                    headers=HEADERS,
+                    json={
+                        "title": f"📖 r/{post['sub']}",
+                        "message": msg,
+                        "data": {
+                            "url": post['url'],
+                            "clickAction": post['url'],
+                            "tag": "reddit-daily",
+                            "sticky": True,
+                        }
+                    },
+                    timeout=10
+                )
+            except Exception as e:
+                log.error(f"Reddit notify failed: {e}")
+            log.info(f"Reddit daily: {post['title'][:60]}")
+
+    def _fetch_top_post(self):
+        """Fetch top post across all subreddits, pick the one with most upvotes."""
+        import re, html
+        candidates = []
+        for sub in self.SUBREDDITS:
+            try:
+                r = requests.get(
+                    f"https://www.reddit.com/r/{sub}/top/.rss?t=day",
+                    headers={"User-Agent": "weixin-agent/1.0"},
+                    timeout=15
+                )
+                if r.status_code != 200:
+                    continue
+                entries = re.findall(r'<entry>(.*?)</entry>', r.text, re.DOTALL)
+                for entry in entries[:3]:  # top 3 per sub
+                    title_m = re.search(r'<title>(.*?)</title>', entry)
+                    link_m = re.search(r'<link href="(.*?)"', entry)
+                    # Extract upvotes from content if available
+                    score_m = re.search(r'(\d+)\s*point', entry)
+                    score = int(score_m.group(1)) if score_m else 0
+                    if title_m and link_m:
+                        candidates.append({
+                            "sub": sub,
+                            "title": html.unescape(title_m.group(1)),
+                            "url": link_m.group(1),
+                            "score": score
+                        })
+            except Exception as e:
+                log.error(f"Reddit fetch {sub}: {e}")
+        if not candidates:
+            return None
+        # Sort by score descending, pick top
+        candidates.sort(key=lambda x: x["score"], reverse=True)
+        # Avoid sending the same post twice (morning vs evening)
+        for c in candidates:
+            if c["url"] not in self._sent_urls:
+                self._sent_urls.add(c["url"])
+                return c
+        return candidates[0]
+
+
 class TunnelWatchdog:
     """Checks Cloudflare Tunnel health every 5min via HTTP, alerts if down."""
-    TUNNEL_URL = os.getenv("TUNNEL_URL", "https://your-ha-domain.example.com")
+    TUNNEL_URL = os.getenv("TUNNEL_URL", "https://ha.mafuzhenhome.xyz")
     CHECK_INTERVAL = 300  # 5 minutes
 
     def __init__(self):
@@ -423,6 +509,7 @@ def main():
     ac_checker = ACOnlineChecker()
     location = LocationLogger()
     tunnel = TunnelWatchdog()
+    reddit = RedditDaily()
 
     # Trim event log on startup (keep last 200 lines)
     try:
@@ -460,6 +547,7 @@ def main():
             ac_checker.poll()
             location.poll()
             tunnel.poll()
+            reddit.poll()
             if loop_count <= 3 or loop_count % 10 == 0:
                 log.info(f"Loop #{loop_count} ok (presence={presence.confirmed})")
         except Exception as e:
