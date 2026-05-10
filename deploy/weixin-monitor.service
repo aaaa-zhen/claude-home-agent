@@ -2,6 +2,8 @@
 Description=weixin-agent monitor
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=6
 
 [Service]
 Type=simple
@@ -11,6 +13,8 @@ Restart=always
 RestartSec=10
 User=ubuntu
 EnvironmentFile=/home/ubuntu/weixin-agent/.env
+Environment=TZ=Asia/Shanghai
+NoNewPrivileges=true
 
 StandardOutput=journal
 StandardError=journal

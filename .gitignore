@@ -34,3 +34,17 @@ Thumbs.db
 *.swo
 *~
 train_query.sh
+config.local.json
+tmp/memory-backups/
+*.lock
+
+# Local backup files
+*.bak
+*.bak2
+*.bak-*
+
+# Runtime output
+logs/
+
+# Nested/vendor checkouts
+sf-express-mcp-server/

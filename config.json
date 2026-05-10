@@ -1,0 +1,102 @@
+{
+  "homeAssistant": {
+    "personEntity": "person.mafuzhen",
+    "notifyService": "notify/mobile_app_zhen",
+    "frontDoorEntity": "binary_sensor.front_door_contact"
+  },
+  "monitor": {
+    "presenceDebounceSeconds": 120,
+    "temperatureCheckIntervalSeconds": 600,
+    "temperatureHighC": 32,
+    "temperatureNormalC": 30,
+    "acOfflineCheckIntervalSeconds": 600,
+    "acOfflineGraceSeconds": 1200,
+    "locationLogIntervalSeconds": 1800,
+    "tunnelCheckIntervalSeconds": 300,
+    "loopIntervalSeconds": 60,
+    "doorSecurityCooldownSeconds": 300
+  },
+  "entities": {
+    "climate": {
+      "climate.gree": "客厅空调",
+      "climate.gree_e6d9": "主卧空调",
+      "climate.studioroom": "书房空调"
+    },
+    "deviceChecks": [
+      {
+        "entity_id": "climate.gree",
+        "name": "客厅空调"
+      },
+      {
+        "entity_id": "climate.gree_e6d9",
+        "name": "主卧空调"
+      },
+      {
+        "entity_id": "climate.studioroom",
+        "name": "书房空调"
+      },
+      {
+        "entity_id": "switch.living_room_main_light",
+        "name": "客厅主灯"
+      },
+      {
+        "entity_id": "switch.living_room_ambient_light",
+        "name": "客厅氛围灯"
+      },
+      {
+        "entity_id": "switch.dining_room_light",
+        "name": "餐厅灯"
+      }
+    ]
+  },
+  "haMcp": {
+    "allowedServices": {
+      "light": [
+        "turn_on",
+        "turn_off",
+        "toggle"
+      ],
+      "switch": [
+        "turn_on",
+        "turn_off",
+        "toggle"
+      ],
+      "climate": [
+        "turn_on",
+        "turn_off",
+        "set_temperature",
+        "set_hvac_mode",
+        "set_fan_mode"
+      ],
+      "fan": [
+        "turn_on",
+        "turn_off",
+        "toggle",
+        "set_percentage"
+      ],
+      "cover": [
+        "open_cover",
+        "close_cover",
+        "stop_cover",
+        "set_cover_position"
+      ]
+    },
+    "readEntityPrefixes": [
+      "person.",
+      "sensor.",
+      "binary_sensor.",
+      "climate.",
+      "switch.",
+      "light.",
+      "fan.",
+      "cover."
+    ],
+    "serviceEntityPrefixes": [
+      "climate.",
+      "switch.",
+      "light.",
+      "fan.",
+      "cover."
+    ]
+  }
+}
