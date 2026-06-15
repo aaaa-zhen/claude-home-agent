@@ -1,208 +1,111 @@
 # Claude Home Agent
 
-**用微信跟 AI 管家对话，控制智能家居、叫车、点餐、导航、查票……**
+**Talk to your AI butler over WeChat — control smart home, hail rides, order food, navigate, check tickets, and more.**
 
-基于 Claude Code + Home Assistant，一条微信搞定所有事。
+Built on Claude Code + Home Assistant. One chat handles everything.
 
-<img width="360" alt="IMG_1570" src="https://github.com/user-attachments/assets/9812913d-5a3f-49ba-8862-ab44320b65dd" />
+<p align="center">
+  <img width="240" alt="demo 1" src="https://github.com/user-attachments/assets/9812913d-5a3f-49ba-8862-ab44320b65dd" />
+  <img width="240" alt="demo 2" src="https://github.com/user-attachments/assets/1e93e39a-f5ec-440a-9b70-97c50a74eeab" />
+  <img width="240" alt="demo 3" src="IMG_2884.PNG" />
+</p>
 
-<img width="360" alt="IMG_2077" src="https://github.com/user-attachments/assets/1e93e39a-f5ec-440a-9b70-97c50a74eeab" />
-
-<img width="360" alt="IMG_2884" src="IMG_2884.PNG" />
-
-<video src="https://github.com/user-attachments/assets/0f30d916-d256-4519-9beb-451c7c89673f" controls width="360"></video>
-
----
-
-## 功能展示
-
-### 🤖 主动自动化（不只是回复，还会主动出击）
-> "我睡一会，温度超过 28 度帮我开空调" / "出门后如果有忘记关的设备提醒我"
-
-这是本项目最强的能力之一。Agent 不只被动回答，还能：
-
-- **温度守护**：睡觉时监测室温，超过阈值自动开空调并通知
-- **到家 / 离家感知**：自动检测位置变化，推送中文通知、触发设备联动
-- **离家忘关设备提醒**：出门后检测到有设备仍在运行，主动发微信提醒
-- **定时设备控制**：指定时间自动开关设备
-- **持续后台监控**：独立进程 7×24 小时运行，不依赖对话是否活跃
-
-### 🏠 智能家居控制
-> "把客厅空调调到 26 度" / "开客厅灯" / "空调都关了"
-
-- 空调：开关、调温、模式（支持多台同时控制）
-- 灯光：客厅氛围灯 / 主灯 / 餐厅灯，分区精确控制
-- 音乐：HomePod mini 播放、暂停、调音量
-- 电动窗帘：开 / 停 / 关
-- 查询状态："现在室温多少" / "空调开着吗"
-
-### 🚗 位置感知导航
-> "导航去吃饭" / "附近有什么川菜馆"
-
-- 自动读取 HA 实时 GPS，以**当前位置**为起点规划路线
-- 搜索周边餐厅、咖啡店、商场，每个结果附带高德导航链接
-- 点一下链接，直接在手机高德 App 里导航
-- 支持驾车 / 步行 / 骑行 / **公交地铁**，自动识别出行方式；"怎么坐公交去XX" → 规划换乘方案、显示线路站数和预计时间
-
-### 📍 地理围栏提醒
-> "到盒马提醒我买牛奶" / "路过公司提醒我打卡"
-
-- 每分钟检查 GPS，到达指定地点自动发微信
-- 支持一次性或每次经过都提醒
-
-### 🔔 到家 / 离家通知
-- 自动检测到家 / 离家，推送中文通知
-- 晚上到家自动开客厅灯
-- 离家后开门触发安全提醒
-
-### 🚕 叫车
-> "打车去万象城"
-
-- 搜索目的地、查询车型报价、直接下单叫滴滴
-- 实时查询司机位置
-
-### 🍔 外卖点餐
-> 支持麦当劳点餐下单
-
-### ✈️ 出行查询
-> "广州到北京明天有什么机票" / "广州南到珠海今天还有高铁"
-
-- 航班：查价格、时刻、经停
-- 高铁：实时余票 + 时刻（通过 12306 国内网络）
-- 天气："今天会下雨吗" / "明天适合出门吗"
-
-### 📦 快递
-> "从珠海寄 1kg 到北京多少钱"
-
-- 对比顺丰、中通、圆通、韵达等多家报价
-- 支持顺丰直接下单寄件
-
-### 📹 视频 / 文件下载 & 处理
-> 直接发链接，自动下载发回微信
-
-- 支持 X（Twitter）、YouTube、抖音等平台
-- 图片、视频、文件均可发送
-- 内置 FFmpeg：视频剪辑、格式转换、压缩、提取音频等，处理完直接发给你
-
-### ⏰ 定时提醒
-> "明天早上 8 点提醒我开会"
-
-- 写入 crontab，时间到主动发微信
-- 一次性提醒触发后自动清除
-
-### 📖 每日英语阅读推送
-- 每天定时从 Reddit / BBC / The Guardian 抓取文章
-- AI 生成 B2 级英语阅读卡片，自动推送
-- 支持随时手动触发"再发一篇"
-
-### 🎨 AI 图片生成
-> "帮我画一张……"
-
-- 调用 gpt-image-2 生成图片，直接发回微信
-- 支持竖版 / 横版 / 方形，可选画质
-
-### 🧠 持久记忆 & 主动学习
-- 跨会话记住偏好、设备、对话历史
-- 自动积累用户画像（常去地点、饮食偏好等）
-- 用户纠正行为后立即记录，下次自动照做，无需重复说
-
-### 📷 图片识别
-> 发张图片给我，我帮你看
-
-- 拍照识别：快递单、菜单、文件、商品……发图片直接识别内容
-- 支持微信直接发图，Claude 原生多模态处理
-
-### 🔀 模型实时切换
-> "切 Opus" / "切 Sonnet"
-
-- 一句话切换 Claude 模型，自动重启生效
+> 📱 Want a generative-UI iOS frontend (Siri-style cards) for the same agent?
+> See **[siri-agent-app](https://github.com/aaaa-zhen/siri-agent-app)**.
 
 ---
 
-## 未来展望
+## Highlights
 
-当前实现只是起点，以下方向都具备可行性：
+The core idea: a single `CLAUDE.md` turns Claude Code into your personal butler.
+No heavy code — it's mostly prompt engineering. The agent doesn't just reply, it
+**acts on its own** and **remembers across sessions**.
 
-### 🚘 汽车接入
-- 领克、比亚迪、特斯拉等品牌通过 HA 插件接入
-- 微信查询车辆状态：电量、位置、车窗是否关好
-- 出门前远程预冷 / 预热
-- 导航目的地一键推送到车机
+| Area | What it does |
+|---|---|
+| 🤖 **Proactive automation** | Watches room temp while you sleep & auto-runs AC; detects arrive/leave home; reminds you of devices left on after you leave; 24/7 background process |
+| 🏠 **Smart home** | AC (on/off/temp/mode, multi-unit), lights (per-room), HomePod music, curtains, live status queries |
+| 🚗 **Navigation** | Routes from your **live GPS**; searches nearby restaurants/cafes/malls with one-tap Amap deep links; driving / walking / cycling |
+| 📍 **Geofence reminders** | "Remind me to buy milk at the supermarket" — checks GPS every minute, pings WeChat on arrival |
+| 🚕 **Ride hailing** | Search destination, quote, book a DiDi, track the driver |
+| ✈️ **Travel** | Flights (price/time), high-speed rail (live seats via 12306), weather |
+| 📦 **Shipping** | Compare courier quotes (SF/ZTO/YTO/Yunda), book SF pickup |
+| 📹 **Media & files** | Send a link → auto-download (X / YouTube / Douyin); built-in FFmpeg for clip/convert/compress |
+| ⏰ **Reminders** | "Remind me at 8am tomorrow" — writes to crontab, self-clears after firing |
+| 📖 **Daily English reading** | Auto-fetches articles (Reddit/BBC/Guardian), AI-generates B2 reading cards |
+| 🎨 **Image generation** | "Draw me a…" via gpt-image, sent back to WeChat |
+| 🧠 **Persistent memory** | Remembers preferences, devices, history; builds a user profile; learns from corrections |
+| 📷 **Image recognition** | Send a photo (receipt/menu/doc/product) — native multimodal understanding |
+| 🔀 **Model switching** | "Switch to Opus / Sonnet" in one message |
 
-### 🔌 更多第三方平台（MCP / CLI 扩展）
-- **外卖**：美团、饿了么点餐下单
-- **购物**：京东、淘宝比价、下单、查快递
-- **健康**：接入 Apple Health / 小米手环，监测睡眠、心率、步数
-- **日历**：Google / Apple Calendar 同步，行程提醒
-- **银行 / 支付**：账单查询、收支统计
-
-### 🏠 智能家居扩展
-- 更多 Zigbee / Matter 设备：智能插座、能耗监控、人体传感器
-- 智能门锁接入：远程开锁、查看开门记录
-- 安防摄像头：移动侦测推送、截图发微信
-- 全屋能耗统计，异常用电主动告警
-
-### 👥 多用户 / 家庭模式
-- 家庭成员各自绑定微信，权限分级管理
-- 老人 / 孩子专属交互模式
-
-### 🗣️ 新一代语音入口
-- 接入新硬件（ESP32-S3 / 树莓派），替代旧 K2 方案
-- 唤醒词 + 本地语音识别，零延迟响应
-
-### 🤖 AI 能力增强
-- 接入更多垂直领域大模型（代码、医疗、法律……）
-
----
-
-## 工作原理
+## How it works
 
 ```
-微信消息 → weixin-acp → Claude Code CLI → Home Assistant / 各类 API → 回复微信
+WeChat message → weixin-acp → Claude Code CLI → Home Assistant / various APIs → reply to WeChat
 ```
 
-核心思路：用 `CLAUDE.md` 把 Claude Code 变成你的私人 AI 管家。不写复杂代码，全靠 prompt engineering。
+## Quick start
 
----
-
-## 快速开始
-
-### 前置条件
-
-- Linux 服务器（1GB 内存 VPS 即可）
-- Node.js 20+、Python 3.12+
-- Home Assistant 实例
-- Claude Code CLI（需要 Anthropic API key）
-- 微信 PC 客户端
-
-### 部署
+**Prerequisites:** a Linux server (1GB VPS is fine), Node.js 20+, Python 3.12+,
+a Home Assistant instance, Claude Code CLI (Anthropic API key), and the WeChat PC client.
 
 ```bash
 git clone https://github.com/aaaa-zhen/claude-home-agent.git
 cd claude-home-agent
 
-# 配置环境变量
-cp .env.example .env
+cp .env.example .env          # fill your keys
+cp -r memory-templates/ memory/   # init memory
+cp CLAUDE.md.example CLAUDE.md     # customize your agent
 
-# 初始化记忆系统
-cp -r memory-templates/ memory/
-
-# 自定义你的 Agent
-cp CLAUDE.md.example CLAUDE.md
-
-# 安装依赖
 python3 -m venv venv && source venv/bin/activate
 pip install requests python-dotenv
 npm install -g weixin-acp
 
-# 启动
-./start.sh
+./start.sh                    # scan the QR to log in WeChat, then message yourself
 ```
 
-扫码登录微信后，给自己发条消息试试！
+## Roadmap
 
----
+- **Cars** — Lynk&Co / BYD / Tesla via HA: check battery & location, pre-cool/heat, push nav to the car
+- **More platforms (MCP/CLI)** — Meituan/Ele.me food, JD/Taobao shopping, Apple Health, calendar sync, bills
+- **Smart home** — Zigbee/Matter devices, smart locks, security cams with motion push, energy monitoring
+- **Multi-user** — per-member WeChat binding, role-based access, elder/kid modes
+- **Voice** — ESP32-S3 / Raspberry Pi wake-word entry with local ASR
 
 ## License
 
 MIT
+
+---
+
+<details>
+<summary>中文说明</summary>
+
+**用微信跟 AI 管家对话，控制智能家居、叫车、点餐、导航、查票……** 基于 Claude Code + Home Assistant，一条微信搞定所有事。
+
+> 想要同一个 agent 的生成式 UI iOS 前端（Siri 风格卡片）？见 **[siri-agent-app](https://github.com/aaaa-zhen/siri-agent-app)**。
+
+核心思路：用一个 `CLAUDE.md` 把 Claude Code 变成你的私人管家，几乎不写代码、全靠 prompt engineering。Agent 不只被动回复，还会**主动出击**、**跨会话记忆**。
+
+| 能力 | 说明 |
+|---|---|
+| 🤖 **主动自动化** | 睡觉时守护室温自动开空调；到家/离家感知；离家忘关设备提醒；7×24 后台运行 |
+| 🏠 **智能家居** | 空调（开关/调温/模式/多台）、灯光（分区）、HomePod 音乐、窗帘、状态查询 |
+| 🚗 **位置感知导航** | 以**当前 GPS** 为起点规划；搜周边餐厅/咖啡/商场，带高德一键导航；驾车/步行/骑行 |
+| 📍 **地理围栏提醒** | "到超市提醒我买牛奶" —— 每分钟查 GPS，到达发微信 |
+| 🚕 **叫车** | 搜目的地、查报价、下单滴滴、实时查司机位置 |
+| ✈️ **出行查询** | 航班（价格/时刻）、高铁（12306 实时余票）、天气 |
+| 📦 **快递** | 多家比价（顺丰/中通/圆通/韵达），顺丰下单寄件 |
+| 📹 **视频/文件** | 发链接自动下载（X/YouTube/抖音）；内置 FFmpeg 剪辑转换压缩 |
+| ⏰ **定时提醒** | "明早 8 点提醒我开会" —— 写 crontab，触发后自动清除 |
+| 📖 **每日英语阅读** | 自动抓 Reddit/BBC/Guardian，AI 生成 B2 阅读卡片 |
+| 🎨 **AI 图片生成** | "帮我画一张……" 直接发回微信 |
+| 🧠 **持久记忆** | 跨会话记住偏好/设备/历史，积累用户画像，从纠正中学习 |
+| 📷 **图片识别** | 发图（快递单/菜单/文件/商品）原生多模态识别 |
+| 🔀 **模型切换** | "切 Opus / 切 Sonnet" 一句话搞定 |
+
+**工作原理**：`微信消息 → weixin-acp → Claude Code CLI → Home Assistant / 各类 API → 回复微信`
+
+**快速开始**：`git clone` 后 `cp .env.example .env`（填密钥）→ `cp -r memory-templates/ memory/` → `cp CLAUDE.md.example CLAUDE.md` → 装依赖 → `./start.sh` 扫码登录微信。
+
+</details>
