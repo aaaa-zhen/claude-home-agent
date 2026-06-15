@@ -10,6 +10,8 @@ Built on Claude Code + Home Assistant. One chat handles everything.
   <img width="240" alt="demo 3" src="IMG_2884.PNG" />
 </p>
 
+https://github.com/user-attachments/assets/0f30d916-d256-4519-9beb-451c7c89673f
+
 > 📱 Want a generative-UI iOS frontend (Siri-style cards) for the same agent?
 > See **[siri-agent-app](https://github.com/aaaa-zhen/siri-agent-app)**.
 
