@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """顺丰沙箱下单脚本"""
-import hashlib, base64, time, urllib.request, urllib.parse, json, uuid, sys
+import hashlib, base64, time, urllib.request, urllib.parse, json, uuid, sys, os
 
-PARTNER_ID = "Y5QNWL7Q"
-CHECK_WORD = "orN7rNpwNNWFjOxNWdf3re1PcbWVmjff"
-API_URL = "https://sfapi-sbox.sf-express.com/std/service"
+PARTNER_ID = os.getenv("SF_PARTNER_ID", "")
+CHECK_WORD = os.getenv("SF_CHECK_WORD", "")
+API_URL = os.getenv("SF_API_URL", "https://sfapi-sbox.sf-express.com/std/service")
 
 def call_sf(service_code, msg_data_dict):
     ts = str(int(time.time()))
@@ -55,10 +55,10 @@ if __name__ == "__main__":
         params = json.loads(sys.argv[1])
         result = create_order(**params)
     else:
-        # 默认测试
+        # 默认测试（示例数据，请替换为真实寄收件信息）
         result = create_order(
-            "mafuzhen", "15555539202", "广东省", "珠海市", "高新区", "北城西一路21号仁恒河滨花园",
-            "张", "15227737475", "河北省", "邢台市", "临西县", "梧桐树西门沿街商铺17-2号润物超市",
+            "张三", "13800000000", "广东省", "深圳市", "南山区", "科技园某路1号",
+            "李四", "13900000000", "北京市", "北京市", "海淀区", "中关村某大厦2号",
             "笔记本电脑", 2.0
         )
     print(json.dumps(result, ensure_ascii=False, indent=2))

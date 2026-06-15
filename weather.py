@@ -2,8 +2,8 @@
 """
 weather.py — 天气查询（wttr.in，无需 API key）
 用法:
-  python3 weather.py now [--city 珠海]
-  python3 weather.py forecast [--city 珠海] [--days 3]
+  python3 weather.py now [--city 北京]
+  python3 weather.py forecast [--city 北京] [--days 3]
 
 输出: 可直接发给用户的文字
 """
@@ -104,7 +104,7 @@ def cmd_forecast(city: str, days: int = 3) -> str:
 def main():
     parser = argparse.ArgumentParser(description="天气查询")
     parser.add_argument("cmd", choices=["now", "forecast"])
-    parser.add_argument("--city", default="珠海")
+    parser.add_argument("--city", default="北京")
     parser.add_argument("--days", type=int, default=3)
     args = parser.parse_args()
 

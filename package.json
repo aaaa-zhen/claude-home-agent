@@ -7,11 +7,12 @@
     "reading:digest": "node reading-digest.mjs",
     "reading:dry-run": "node reading-digest.mjs --dry-run",
     "backup:memory": "./backup-memory.sh",
-    "cleanup:tmp": "./cleanup-tmp.sh"
+    "cleanup:tmp": "./cleanup-tmp.sh",
+    "healthcheck": "./healthcheck.sh"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code": "2.1.126",
+    "@anthropic-ai/claude-code": "^2.1.168",
     "@zed-industries/claude-agent-acp": "0.23.0",
-    "weixin-acp": "0.5.0"
+    "weixin-acp": "0.6.0"
   }
 }

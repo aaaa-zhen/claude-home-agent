@@ -33,9 +33,9 @@ log = logging.getLogger(__name__)
 def load_config():
     defaults = {
         "homeAssistant": {
-            "personEntity": "person.mafuzhen",
+            "personEntity": "person.me",
             "frontDoorEntity": "binary_sensor.front_door_contact",
-            "notifyService": "notify/mobile_app_zhen",
+            "notifyService": "notify/mobile_app_phone",
         },
         "monitor": {
             "presenceDebounceSeconds": 120,
@@ -84,12 +84,12 @@ HA_CONFIG = CONFIG.get("homeAssistant", {})
 MONITOR_CONFIG = CONFIG.get("monitor", {})
 ENTITY_CONFIG = CONFIG.get("entities", {})
 
-HA_URL = os.getenv("HA_URL", "http://192.168.3.6:8123/api")
+HA_URL = os.getenv("HA_URL", "http://localhost:8123/api")
 HA_TOKEN = os.getenv("HA_TOKEN")
 AMAP_KEY = os.getenv("AMAP_KEY")
-PERSON_ENTITY = HA_CONFIG.get("personEntity", "person.mafuzhen")
+PERSON_ENTITY = HA_CONFIG.get("personEntity", "person.me")
 FRONT_DOOR_ENTITY = HA_CONFIG.get("frontDoorEntity", "binary_sensor.front_door_contact")
-NOTIFY_SERVICE = HA_CONFIG.get("notifyService", "notify/mobile_app_zhen").strip("/")
+NOTIFY_SERVICE = HA_CONFIG.get("notifyService", "notify/mobile_app_phone").strip("/")
 HEADERS = {
     "Authorization": f"Bearer {HA_TOKEN}",
     "Content-Type": "application/json",
@@ -146,7 +146,37 @@ def ha_get(entity_id):
     return None
 
 
-def ha_notify(message, title=None):
+def _tg_channel_for_notify(title, msg_type):
+    """Pick Telegram channel based on notification type."""
+    t = (title or "").lower()
+    if any(k in t for k in ["温", "tunnel", "离线", "恢复在线"]):
+        return "env"
+    if any(k in t for k in ["到家", "出门", "安全", "开门"]):
+        return "home"
+    if msg_type == "bus_countdown":
+        return "reminder"
+    return "home"  # default
+
+
+def ha_notify(message, title=None, msg_type="general"):
+    # Also push to Android app notification queue
+    try:
+        from app_notify import notify as app_push
+        app_push(title or "家居助手", message, msg_type)
+    except Exception:
+        pass
+
+    # Also push to Telegram channel (non-blocking)
+    try:
+        tg_ch = _tg_channel_for_notify(title, msg_type)
+        tg_msg = f"{title}: {message}" if title else message
+        subprocess.Popen(
+            ["/bin/bash", "/home/ubuntu/weixin-agent/tg-notify.sh", tg_ch, tg_msg],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        pass
+
     try:
         payload = {"message": message}
         if title:

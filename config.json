@@ -1,7 +1,7 @@
 {
   "homeAssistant": {
-    "personEntity": "person.mafuzhen",
-    "notifyService": "notify/mobile_app_zhen",
+    "personEntity": "person.me",
+    "notifyService": "notify/mobile_app_phone",
     "frontDoorEntity": "binary_sensor.front_door_contact"
   },
   "monitor": {

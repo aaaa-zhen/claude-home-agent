@@ -4,6 +4,12 @@
 set -euo pipefail
 
 CANDIDATES=()
+if [ -d /home/ubuntu/weixin-agent/node_modules/weixin-acp/dist ]; then
+    while IFS= read -r file; do CANDIDATES+=("$file"); done < <(
+        find /home/ubuntu/weixin-agent/node_modules/weixin-acp/dist \
+            -maxdepth 1 -type f -name 'acp-agent-*.mjs' 2>/dev/null | sort
+    )
+fi
 if [ -d /home/ubuntu/.npm-global/lib/node_modules/weixin-acp/dist ]; then
     while IFS= read -r file; do CANDIDATES+=("$file"); done < <(
         find /home/ubuntu/.npm-global/lib/node_modules/weixin-acp/dist \

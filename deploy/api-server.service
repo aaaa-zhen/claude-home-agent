@@ -1,0 +1,17 @@
+[Unit]
+Description=Home App API proxy
+After=chelaile-bus.service
+Wants=chelaile-bus.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/weixin-agent
+ExecStart=/home/ubuntu/weixin-agent/venv/bin/python /home/ubuntu/weixin-agent/api-server.py
+Restart=always
+RestartSec=5
+User=ubuntu
+Environment=TZ=Asia/Shanghai
+EnvironmentFile=/home/ubuntu/weixin-agent/.env
+
+[Install]
+WantedBy=multi-user.target

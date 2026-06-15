@@ -55,35 +55,24 @@ def load_env_file(path):
 
 load_env_file(SCRIPT_DIR / ".env")
 AMAP_KEY = os.getenv("AMAP_KEY")
-DEFAULT_CITY = "珠海"
+DEFAULT_CITY = os.getenv("DEFAULT_CITY", "北京")
 DEFAULT_RADIUS_M = 400
 DEFAULT_MAX_GPS_AGE_MINUTES = 180
 DEFAULT_ACCURACY_PADDING_M = 100
 
 # Coordinates are GCJ-02 lng/lat.
+# 在这里预置你的常用地点（公司/家等），坐标用高德拾取（GCJ-02）。下面是示例占位，请替换。
 ALIASES = {
     "公司": {
-        "name": "魅族科技大楼",
-        "lng": 113.569233,
-        "lat": 22.372477,
-        "radius_m": 350,
-    },
-    "魅族": {
-        "name": "魅族科技大楼",
-        "lng": 113.569233,
-        "lat": 22.372477,
-        "radius_m": 350,
-    },
-    "魅族科技": {
-        "name": "魅族科技大楼",
-        "lng": 113.569233,
-        "lat": 22.372477,
+        "name": "公司示例",
+        "lng": 116.397428,
+        "lat": 39.90923,
         "radius_m": 350,
     },
     "家": {
-        "name": "仁恒河滨花园",
-        "lng": 113.550261,
-        "lat": 22.396891,
+        "name": "家示例",
+        "lng": 116.40,
+        "lat": 39.92,
         "radius_m": 250,
     },
 }
@@ -116,7 +105,7 @@ def slugify(text):
 def parse_lnglat(value):
     parts = [p.strip() for p in value.split(",")]
     if len(parts) != 2:
-        raise SystemExit("坐标格式应为 lng,lat，例如 113.569233,22.372477")
+        raise SystemExit("坐标格式应为 lng,lat，例如 116.397428,39.90923")
     lng, lat = float(parts[0]), float(parts[1])
     return {"name": value, "lng": lng, "lat": lat, "radius_m": DEFAULT_RADIUS_M}
 
@@ -198,7 +187,7 @@ def current_location_info():
         return None
     headers = {"Authorization": f"Bearer {ha_token}"}
     try:
-        response = requests.get(f"{ha_url}/states/person.mafuzhen", headers=headers, timeout=10)
+        response = requests.get(f"{ha_url}/states/person.me", headers=headers, timeout=10)
         if response.status_code != 200:
             return None
         state = response.json()
@@ -255,6 +244,14 @@ def send_weixin(message):
         timeout=30,
         check=True,
     )
+    # Also push to Telegram reminder channel
+    try:
+        subprocess.Popen(
+            ["/bin/bash", str(SCRIPT_DIR / "tg-notify.sh"), "reminder", message],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        pass
 
 
 def ensure_geofence_cron():

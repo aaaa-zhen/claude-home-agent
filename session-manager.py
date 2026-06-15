@@ -31,7 +31,8 @@ RECENT_CONTEXT = os.path.join(SCRIPT_DIR, "memory", "recent-context.md")
 CONVERSATION_SUMMARY = os.path.join(SCRIPT_DIR, "memory", "conversation-summary.md")
 
 DAILY_RESET_HOUR = 4        # 4am
-IDLE_RESET_HOURS = 2         # reset after 2h true idle
+# IDLE_RESET_HOURS disabled: session persistence优先，只在每周日 4am 做一次硬重启
+IDLE_RESET_HOURS = 168       # 7 days, effectively disabled
 RECENT_ACTIVITY_MINUTES = 30 # never reset if active within 30min
 CHECK_INTERVAL = 60          # check every 60 seconds
 
@@ -270,10 +271,11 @@ def should_reset(state):
     if idle_minutes < IDLE_RESET_HOURS * 60:
         return None, idle_minutes
 
-    # Daily reset: after 4am, at most once per calendar day, only when truly idle.
+    # Weekly reset: only on Sunday after 4am, at most once per week.
+    # We keep this as a safety valve so long-running sessions still get a fresh start once a week.
     today = now.date().isoformat()
-    if now.hour >= DAILY_RESET_HOUR and state.get("last_daily_reset_date") != today:
-        return "daily_reset", idle_minutes
+    if now.weekday() == 6 and now.hour >= DAILY_RESET_HOUR and state.get("last_daily_reset_date") != today:
+        return "weekly_reset", idle_minutes
 
     # Idle reset: once per activity window, so an overnight idle period does not
     # restart the process every CHECK_INTERVAL.

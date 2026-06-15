@@ -78,7 +78,7 @@ memory/
 ├── learned-facts.md       # 积累的知识和规则
 ├── conversation-summary.md # 重要对话摘要（长期记忆）
 ├── location-log.md        # 位置记录
-├── zhuhai-guide.md        # 本地生活指南
+├──  local-guide.md         # 本地生活指南
 └── session-state.json     # 会话状态
 ```
 

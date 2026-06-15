@@ -4,7 +4,7 @@ amap_nav.py — 高德地图导航工具
 用法:
   python3 amap_nav.py route --from 望京 --to 三里屯 --city 北京 [--mode driving|walking|riding|transit]
   python3 amap_nav.py geocode --address 望京 --city 北京
-  python3 amap_nav.py poi --keyword 星巴克 --city 珠海 [--center 113.57,22.37] [--radius 3000]
+  python3 amap_nav.py poi --keyword 星巴克 --city 北京 [--center 116.40,39.91] [--radius 3000]
   python3 amap_nav.py uri --from-loc 116.48,39.99 --to-loc 116.45,39.93 --from-name 望京 --to-name 三里屯 [--mode car]
 
 输出: JSON，供 Claude 解析
@@ -37,15 +37,61 @@ def load_amap_key():
 AMAP_KEY = load_amap_key()
 BASE = "https://restapi.amap.com"
 
+# ── HA 盒子代理（国内网络，通过 Cloudflare Tunnel）──
+# VPS 在日本，直连高德 API 可能超时。优先通过 HA 盒子上的 amap-proxy 代理调用。
+import subprocess, time
+
+_cf_proc = None
+_cf_local_port = 15004
+
+def _ensure_tunnel():
+    """确保 cloudflared tunnel 到 HA 盒子的 SSH 通道已建立"""
+    global _cf_proc
+    if _cf_proc and _cf_proc.poll() is None:
+        return True
+    try:
+        _cf_proc = subprocess.Popen(
+            ['cloudflared', 'access', 'tcp', '--hostname',
+             os.getenv('HA_SSH_HOST', 'your-ssh-host.example.com'),
+             '--url', f'localhost:{_cf_local_port}'],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        time.sleep(2)
+        return _cf_proc.poll() is None
+    except Exception:
+        return False
+
+def _amap_via_ha(endpoint, params):
+    """通过 HA 盒子代理调高德 API。返回 dict 或 None（失败时 fallback 直连）"""
+    if not _ensure_tunnel():
+        return None
+    try:
+        cmd = ['sshpass', '-p', os.getenv('HA_SSH_PASS', ''), 'ssh',
+               '-o', 'StrictHostKeyChecking=no', '-o', 'ConnectTimeout=5',
+               '-p', str(_cf_local_port), 'root@localhost',
+               f'curl -s "http://localhost:5004{endpoint}?{urlencode(params)}"']
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        if result.returncode == 0 and result.stdout.strip():
+            data = json.loads(result.stdout)
+            if isinstance(data, dict) and 'error' not in data:
+                return data
+    except Exception:
+        pass
+    return None
+
 
 def geocode(address: str, city: str = "") -> dict:
     """地名转 GCJ-02 坐标，返回 {"location": "lng,lat", "formatted_address": "...", "name": "..."}"""
     params = {"address": address, "key": AMAP_KEY, "output": "json"}
     if city:
         params["city"] = city
-    r = requests.get(f"{BASE}/v3/geocode/geo", params=params, timeout=8)
-    r.raise_for_status()
-    data = r.json()
+    # Try HA proxy first
+    ha_data = _amap_via_ha("/geocode", {"address": address, "city": city or ""})
+    data = ha_data if ha_data else None
+    if not data:
+        r = requests.get(f"{BASE}/v3/geocode/geo", params=params, timeout=8)
+        r.raise_for_status()
+        data = r.json()
     if data.get("status") != "1" or not data.get("geocodes"):
         return {"error": f"geocode failed: {data.get('info', 'no result')} for '{address}'"}
     g = data["geocodes"][0]
@@ -76,9 +122,16 @@ def plan_route(origin: str, destination: str, mode: str = "driving", city: str =
         params["city"] = city
         params["cityd"] = city
 
-    r = requests.get(f"{BASE}{path_url}", params=params, timeout=10)
-    r.raise_for_status()
-    data = r.json()
+    # Try HA proxy first
+    ha_params = {"origin": origin, "destination": destination, "mode": mode}
+    if mode == "transit" and city:
+        ha_params["city"] = city
+    ha_data = _amap_via_ha("/route", ha_params)
+    data = ha_data if ha_data else None
+    if not data:
+        r = requests.get(f"{BASE}{path_url}", params=params, timeout=10)
+        r.raise_for_status()
+        data = r.json()
     if data.get("status") != "1":
         return {"error": f"route failed: {data.get('info', 'unknown')}"}
 
@@ -139,7 +192,7 @@ def build_amap_uri(from_loc: str, to_loc: str, from_name: str, to_name: str,
         parts.append(f"from={from_loc},{quote(from_name)}")
     parts.append(f"to={to_loc},{quote(to_name)}")
     if via:
-        parts.append(f"via={quote(via)}")
+        parts.append(f"via={via}")
     parts += [
         f"mode={amap_mode}",
         "policy=0",
@@ -152,6 +205,7 @@ def build_amap_uri(from_loc: str, to_loc: str, from_name: str, to_name: str,
 
 def search_poi(keyword: str, city: str = "", center: str = "", radius: int = 3000, page_size: int = 5) -> dict:
     """POI 搜索，返回带 marker 链接的列表"""
+    endpoint = "/v3/place/around" if center else "/v3/place/text"
     params = {
         "keywords": keyword,
         "key": AMAP_KEY,
@@ -164,10 +218,19 @@ def search_poi(keyword: str, city: str = "", center: str = "", radius: int = 300
         params["city"] = city
     if center:
         params["location"] = center
+        params["radius"] = radius
         params["sortrule"] = "distance"
-    r = requests.get(f"{BASE}/v3/place/text", params=params, timeout=8)
-    r.raise_for_status()
-    data = r.json()
+    # Try HA proxy first
+    ha_params = {"keyword": keyword, "city": city or ""}
+    if center:
+        ha_params["center"] = center
+        ha_params["radius"] = str(radius)
+    ha_data = _amap_via_ha("/poi", ha_params)
+    data = ha_data if ha_data else None
+    if not data:
+        r = requests.get(f"{BASE}{endpoint}", params=params, timeout=8)
+        r.raise_for_status()
+        data = r.json()
     if data.get("status") != "1":
         return {"error": f"POI search failed: {data.get('info', 'unknown')}"}
 
@@ -239,11 +302,18 @@ def cmd_route(args):
     if "error" in to_geo:
         print(json.dumps({"error": to_geo["error"]}, ensure_ascii=False)); return
 
+    via_str = ""
+    if args.via:
+        via_geo = geocode(args.via, args.city)
+        if "error" in via_geo:
+            print(json.dumps({"error": via_geo["error"]}, ensure_ascii=False)); return
+        via_str = f"{via_geo['location']},{quote(args.via)}"
+
     route = plan_route(from_geo["location"], to_geo["location"], args.mode, args.city)
     summary = format_route_summary(route, args.from_place, args.to_place)
     uri = build_amap_uri(
         from_geo["location"], to_geo["location"],
-        args.from_place, args.to_place, args.mode
+        args.from_place, args.to_place, args.mode, via=via_str
     )
     print(json.dumps({
         "summary": summary,
@@ -254,7 +324,8 @@ def cmd_route(args):
     }, ensure_ascii=False))
 
 def cmd_uri(args):
-    uri = build_amap_uri(args.from_loc, args.to_loc, args.from_name, args.to_name, args.mode)
+    via_str = f"{args.via_loc},{quote(args.via_name)}" if args.via_loc else ""
+    uri = build_amap_uri(args.from_loc, args.to_loc, args.from_name, args.to_name, args.mode, via=via_str)
     print(json.dumps({"uri": uri}, ensure_ascii=False))
 
 def cmd_poi(args):
@@ -275,6 +346,7 @@ def main():
     p = sub.add_parser("route", help="路线规划 + 唤起链接")
     p.add_argument("--from", dest="from_place", required=True)
     p.add_argument("--to", dest="to_place", required=True)
+    p.add_argument("--via", default="", help="途经点地名（可选）")
     p.add_argument("--city", default="")
     p.add_argument("--mode", default="driving",
                    choices=["driving", "walking", "riding", "transit"])
@@ -285,6 +357,8 @@ def main():
     p.add_argument("--from-name", default="")
     p.add_argument("--to-loc", required=True)
     p.add_argument("--to-name", required=True)
+    p.add_argument("--via-loc", default="", help="途经点坐标 lng,lat（可选）")
+    p.add_argument("--via-name", default="", help="途经点名称（可选）")
     p.add_argument("--mode", default="car")
 
     # poi

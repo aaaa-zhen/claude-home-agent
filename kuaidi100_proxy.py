@@ -5,8 +5,8 @@
 
 Usage:
   python3 kuaidi100_proxy.py          # 默认端口 5002
-  curl "http://localhost:5002/price?from=广东珠海&to=北京&weight=1&man=shunfeng"
-  curl "http://localhost:5002/price?from=广东珠海&to=北京&weight=1"  # 不指定快递公司则查全部
+  curl "http://localhost:5002/price?from=广东深圳&to=北京&weight=1&man=shunfeng"
+  curl "http://localhost:5002/price?from=广东深圳&to=北京&weight=1"  # 不指定快递公司则查全部
 """
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -15,9 +15,10 @@ import urllib.request
 import json
 import hashlib
 import time
+import os
 
-KEY = 'FGbegVrw4788'
-SECRET = '6454c13d407340a095c8d5a80ae9db06'
+KEY = os.getenv('KUAIDI100_KEY', '')
+SECRET = os.getenv('KUAIDI100_SECRET', '')
 API_URL = 'https://api.kuaidi100.com/label/order'
 
 
@@ -70,7 +71,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {'status': 'ok'})
 
         else:
-            self._json(404, {'error': 'Use /price?from=广东珠海&to=北京&weight=1&man=shunfeng'})
+            self._json(404, {'error': 'Use /price?from=广东深圳&to=北京&weight=1&man=shunfeng'})
 
     def _json(self, code, data):
         self.send_response(code)

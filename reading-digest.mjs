@@ -250,7 +250,7 @@ async function buildMessageWithAI(candidate) {
     throw new Error('AIHUBMIX_API_KEY not set in .env');
   }
 
-  const prompt = `You are an English learning content writer. Write a B2-level reading digest based on this news article.
+  const prompt = `You are an English learning content writer. Write a B1-level reading digest based on this news article.
 
 Article title: ${candidate.title}
 Article summary: ${candidate.summary || '(no summary available)'}
@@ -261,11 +261,11 @@ Follow this exact structure in your output:
 
 Line 1: The article title (copy exactly)
 Line 2: (blank)
-Lines 3+: Write a complete B2-level news story. 4-6 paragraphs. Natural, engaging English with context and background. No markdown. Do not start with "In" or "This article".
+Lines 3+: Write a complete B1-level news story. 4-6 paragraphs. Use simple, clear sentences. Avoid complex grammar and rare vocabulary. No markdown. Do not start with "In" or "This article".
 After story: (blank line)
 Then write: Useful words:
 Then write exactly 5 lines, each formatted as: - word = short definition in simple English
-Choose real words from your story that B2 learners would find useful.
+Choose real words from your story that B1 learners would find useful. Keep definitions very simple.
 Then: (blank line)
 Then write: Original link: ${candidate.url}
 
@@ -299,6 +299,54 @@ Output ONLY the above. No extra commentary.`;
   }
 }
 
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function formatForTelegram(plainText, candidate) {
+  const lines = plainText.split('\n').map(l => l.trim());
+  const title = lines[0] || candidate.title;
+
+  // Split into sections
+  const vocabIdx = lines.findIndex(l => /^useful words/i.test(l));
+  const linkIdx = lines.findIndex(l => /^original link/i.test(l));
+
+  const storyLines = lines.slice(1, vocabIdx > 0 ? vocabIdx : linkIdx > 0 ? linkIdx : lines.length)
+    .filter(l => l.length > 0);
+
+  const vocabLines = vocabIdx > 0
+    ? lines.slice(vocabIdx + 1, linkIdx > 0 ? linkIdx : lines.length).filter(l => l.startsWith('-'))
+    : [];
+
+  const url = candidate.url;
+  const sourceLabel = `${candidate.source} · ${candidate.feed}`;
+
+  const parts = [];
+  parts.push(`📰 <i>${escapeHtml(sourceLabel)}</i>`);
+  parts.push('');
+  parts.push(`<b>${escapeHtml(title)}</b>`);
+  parts.push('');
+  for (const para of storyLines) {
+    parts.push(escapeHtml(para));
+    parts.push('');
+  }
+  if (vocabLines.length > 0) {
+    parts.push('📚 <b>Useful words</b>');
+    for (const v of vocabLines) {
+      const m = v.match(/^-\s*(\w+)\s*[=:]\s*(.+)$/);
+      if (m) {
+        parts.push(`• <b>${escapeHtml(m[1])}</b> — ${escapeHtml(m[2].trim())}`);
+      } else {
+        parts.push(escapeHtml(v.replace(/^-\s*/, '• ')));
+      }
+    }
+    parts.push('');
+  }
+  parts.push(`🔗 <a href="${url}">Read original article</a>`);
+
+  return parts.join('\n');
+}
+
 async function main() {
   if (!acquireLock()) {
     log('skip: another reading-digest run is still active');
@@ -325,6 +373,38 @@ async function main() {
   }
 
   const result = await sendText(message);
+
+  // Push to Telegram Daily group (📚 英语阅读 topic, thread_id=8) with HTML formatting
+  try {
+    const tgMsg = formatForTelegram(message, candidate);
+    const BOT_TOKEN = (() => {
+      for (const dir of [SCRIPT_DIR, '/home/ubuntu/telegram-agent']) {
+        const envFile = path.join(dir, '.env');
+        if (fs.existsSync(envFile)) {
+          for (const line of fs.readFileSync(envFile, 'utf8').split('\n')) {
+            const m = line.match(/^TELEGRAM_BOT_TOKEN=(.+)$/);
+            if (m) return m[1].trim();
+          }
+        }
+      }
+      return null;
+    })();
+    if (BOT_TOKEN) {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: process.env.TG_DAILY_CHAT_ID || '',
+          message_thread_id: 8,
+          text: tgMsg,
+          parse_mode: 'HTML',
+          disable_web_page_preview: false,
+        }),
+      });
+    }
+  } catch (err) {
+    log(`telegram push failed: ${err.message}`);
+  }
   state.sentItems = [
     ...(state.sentItems || []),
     {
