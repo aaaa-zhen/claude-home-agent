@@ -14,7 +14,7 @@ echo   关闭此窗口即停止服务
 echo ========================================
 
 :: 内网地址不走代理
-set no_proxy=192.168.3.6,localhost,127.0.0.1,::1,.local
+set no_proxy=192.168.1.100,localhost,127.0.0.1,::1,.local
 set NO_PROXY=%no_proxy%
 
 set COUNT=0
