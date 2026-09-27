@@ -1,11 +1,17 @@
 # Environment & secrets
 .env
 CLAUDE.md
+AGENTS.md
 model.txt
 session-start.txt
 
 # Personal memory (use memory-templates/ as reference)
 memory/
+
+# User mini-projects & private web previews (personal; this repo is public)
+projects/**
+!projects/
+!projects/README.md
 
 # Logs
 *.log
@@ -33,7 +39,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
-train_query.sh
+# train_query.sh 已迁至 tools/travel/train_query.sh（根目录同名文件是 exec shim）
+# 两者都纳入版本管理，与 bus_query.sh / kuaidi100_query.sh 保持一致，故此处不再忽略
 config.local.json
 tmp/memory-backups/
 *.lock
@@ -45,6 +52,29 @@ tmp/memory-backups/
 
 # Runtime output
 logs/
+runtime/**
+!runtime/
+!runtime/README.md
+
+# Personal runtime state (home presence/security history; this repo is public)
+notifications.json
+
+# Runtime media vault (keep docs/placeholders, not personal media)
+media/**
+!media/
+!media/README.md
+!media/**/
+!media/**/.gitkeep
+!media/**/README.md
 
 # Nested/vendor checkouts
 sf-express-mcp-server/
+
+# Session-Agent OS v2 sidecar runtime state (SQLite)
+agent_os/v2/runtime/
+*.db
+*.db-wal
+*.db-shm
+.git-private/
+.browser-profile/
+secrets/

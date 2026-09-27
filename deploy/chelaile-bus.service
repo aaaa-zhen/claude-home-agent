@@ -1,0 +1,23 @@
+[Unit]
+Description=chelaile realtime bus API
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=6
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/weixin-agent
+ExecStart=/home/ubuntu/weixin-agent/venv/bin/python /home/ubuntu/weixin-agent/chelaile.py
+Restart=always
+RestartSec=10
+User=ubuntu
+Environment=TZ=Asia/Shanghai
+NoNewPrivileges=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chelaile-bus
+
+[Install]
+WantedBy=multi-user.target

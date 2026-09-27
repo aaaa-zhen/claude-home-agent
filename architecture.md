@@ -4,6 +4,8 @@
 
 微信消息 → weixin-acp（Node 桥） → Claude Code CLI → 执行工具/API → 回复微信
 
+> 当前 live runtime 以这台 Mac 为主 agent host，链路是 `weixin-acp → claude-agent-acp`（codex-acp 已退役），常驻进程由 launchd 托管（`com.zhen.weixin-agent` / `com.zhen.weixin-monitor` / `com.zhen.weixin-session-manager`）；`deploy/` 里的 systemd 文件是历史/服务器部署参考，不代表当前 live runtime。当前分层边界见 `docs/architecture-layers.md`。
+
 ## 整体架构
 
 ```
@@ -103,7 +105,7 @@ memory/
 
 - **凌晨 4 点后重置**：每天最多一次，且只在真正空闲时重启
 - **空闲 2 小时重置**：最近 30 分钟有消息时绝不重置，空闲 2 小时后才重启
-- **杀进程后 systemd 自动重启主服务**
+- **杀进程后 launchd 自动重启主服务**（`com.zhen.weixin-agent` 配了 KeepAlive）
 
 ## 文件结构
 
@@ -112,24 +114,31 @@ weixin-agent/
 ├── CLAUDE.md              # Agent 配置（人设+规则+工具用法）
 ├── .env                   # 密钥（HA_TOKEN, AMAP_KEY 等）
 ├── model.txt              # 当前使用的模型（sonnet/opus）
-├── start.sh               # 主启动脚本（由 systemd 托管）
-├── monitor.py             # 后台监控脚本
-├── session-manager.py     # 会话生命周期管理
-├── gps_convert.py         # WGS-84 → GCJ-02 坐标转换
-├── deploy/                # systemd service 文件
-├── start-monitor.sh       # monitor 历史启动脚本，当前由 systemd 托管
-├── start-session-manager.sh  # session-manager 历史启动脚本，当前由 systemd 托管
+├── start.sh               # 主启动脚本（由 launchd 托管）
+├── ha_mcp_server.py       # HA MCP 服务（由 agent MCP 配置拉起）
+├── geofence_reminder.py   # 地理围栏提醒 CLI（cron 每分钟）
+├── services/              # launchd 托管的常驻服务
+│   ├── monitor.py         # 后台监控（到家/离家/温度/Tunnel）
+│   ├── session-manager.py # 会话生命周期管理
+│   ├── chelaile.py        # 实时公交 API（127.0.0.1:8080）
+│   └── api-server.py      # 通知队列 + 预览托管（:8081）
+├── tools/                 # 叶子工具（info/travel/media）
+│   └── travel/gps_convert.py  # WGS-84 → GCJ-02 坐标转换
+├── core/                  # 服务共享的 Python 模块
+├── scripts/               # .mjs 工具与桥接
+├── patches/               # 一次性 patch-*.sh
+├── deploy/                # 旧 systemd service 文件（历史参考）
 └── memory/                # 记忆系统（见上）
 ```
 
 ## 启动方式
 
-开机启动 3 个 systemd 服务：
+开机由 launchd 拉起 3 个 agent（plist 在 `~/Library/LaunchAgents/`）：
 
 ```bash
-systemctl status weixin-agent weixin-monitor weixin-session-manager
-sudo systemctl restart weixin-agent
-journalctl -u weixin-agent -n 80 --no-pager
+launchctl list | grep com.zhen.weixin
+launchctl kickstart -k gui/$(id -u)/com.zhen.weixin-agent
+tail -n 80 /Users/zhen/home-agent/_migration/logs/com.zhen.weixin-agent.out.log
 ```
 
 ## 给同事的快速上手指南

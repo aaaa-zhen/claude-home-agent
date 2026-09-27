@@ -4,6 +4,9 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { ConversationContext } from './scripts/conversation-context.mjs';
+import {validateSendResponse} from './scripts/weixin-response-validation.mjs';
+export {validateSendResponse} from './scripts/weixin-response-validation.mjs';
 
 const DEFAULT_BASE_URL = 'https://ilinkai.weixin.qq.com';
 const CHANNEL_VERSION = '0.1.0';
@@ -59,11 +62,12 @@ export async function sendText(text, options = {}) {
   if (!trimmed) throw new Error('Refusing to send an empty Weixin message.');
 
   const account = resolveAccount();
+  const clientId = makeClientId();
   const body = JSON.stringify({
     msg: {
       from_user_id: '',
       to_user_id: options.toUserId || account.toUserId,
-      client_id: makeClientId(),
+      client_id: clientId,
       message_type: 2,
       message_state: 2,
       item_list: [{ type: 1, text_item: { text: trimmed } }],
@@ -72,7 +76,8 @@ export async function sendText(text, options = {}) {
     base_info: { channel_version: CHANNEL_VERSION },
   });
 
-  const response = await fetch(endpoint(account.baseUrl, 'ilink/bot/sendmessage'), {
+  let response;
+  try { response = await fetch(endpoint(account.baseUrl, 'ilink/bot/sendmessage'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -82,12 +87,31 @@ export async function sendText(text, options = {}) {
       'X-WECHAT-UIN': randomWechatUin(),
     },
     body,
-  });
-
-  const raw = await response.text();
-  if (!response.ok) {
-    throw new Error(`sendmessage failed: HTTP ${response.status} ${raw.slice(0, 500)}`);
+    signal: AbortSignal.timeout(30000),
+  }); } catch (cause) {
+    const error = new Error('sendmessage transport failed; delivery outcome unknown');
+    error.deliveryUnknown = true;
+    throw error;
   }
+  let raw;
+  try { raw = await response.text(); }
+  catch { const error = new Error('sendmessage response interrupted; delivery outcome unknown'); error.deliveryUnknown = true; throw error; }
+  validateSendResponse(response.status, raw);
+  // The shared egress owns this receipt, including old scripts that only call
+  // the CLI. Never let a failed local receipt make callers resend an accepted message.
+  let context;
+  try {
+    context = new ConversationContext(process.env.HOME_AGENT_NOTIFICATION_DB || undefined);
+    context.recordNotification({
+      id: options.notification?.id || clientId,
+      text: trimmed,
+      conversation: (!options.toUserId || options.toUserId === account.toUserId) ? 'home-agent:shared' : options.toUserId,
+      source: options.notification?.source || 'background',
+      taskId: options.notification?.taskId || null,
+      originTurnId: options.notification?.originTurnId || null,
+    });
+  } catch (error) { console.error('[notification-context] accepted send receipt failed: ' + error.message); }
+  finally { context?.close(); }
 
   return { ok: true, status: response.status, accountId: account.accountId, toUserId: options.toUserId || account.toUserId };
 }
@@ -106,6 +130,11 @@ if (isCli) {
   if (textFlag >= 0) text = args.slice(textFlag + 1).join(' ');
   else text = args.join(' ');
   if (!text.trim() && !process.stdin.isTTY) text = await readStdin();
-  const result = await sendText(text);
-  console.log(JSON.stringify(result));
+  try {
+    const result = await sendText(text);
+    console.log(JSON.stringify(result));
+  } catch (error) {
+    console.error(JSON.stringify({ok: false, error: error.message, outcome: error.deliveryUnknown ? 'unknown' : 'rejected'}));
+    process.exitCode = error.deliveryUnknown ? 3 : 1;
+  }
 }

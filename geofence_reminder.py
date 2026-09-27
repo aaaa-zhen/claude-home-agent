@@ -11,6 +11,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 import fcntl
 from datetime import datetime, timezone
@@ -18,18 +19,21 @@ from pathlib import Path
 import math
 import requests
 
-from gps_convert import wgs84_to_gcj02
-
+# This file lives at the repo root; put that root on sys.path so `tools`/`core`
+# packages resolve regardless of cwd (cron sets cwd but not sys.path).
 SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+from tools.travel.gps_convert import wgs84_to_gcj02
+
 GEOFENCES_FILE = SCRIPT_DIR / "memory" / "geofences.json"
 LOCK_FILE = SCRIPT_DIR / "memory" / "geofence-check.lock"
 CRON_LOG = SCRIPT_DIR / "logs" / "geofence-cron.log"
 CRON_MARKER = "geofence_reminder.py check"
-NODE_BIN = "/usr/bin/node"
+NODE_BIN = "/opt/homebrew/bin/node"
 
 def python_bin():
     candidate = SCRIPT_DIR / "venv" / "bin" / "python"
-    return candidate if candidate.exists() else Path("/usr/bin/python3")
+    return candidate if candidate.exists() else Path("/Users/zhen/home-agent/weixin-agent/venv/bin/python")
 
 
 def geofence_cron_line():
@@ -55,20 +59,14 @@ def load_env_file(path):
 
 load_env_file(SCRIPT_DIR / ".env")
 AMAP_KEY = os.getenv("AMAP_KEY")
-DEFAULT_CITY = os.getenv("DEFAULT_CITY", "北京")
+DEFAULT_CITY = "珠海"
 DEFAULT_RADIUS_M = 400
 DEFAULT_MAX_GPS_AGE_MINUTES = 180
 DEFAULT_ACCURACY_PADDING_M = 100
 
 # Coordinates are GCJ-02 lng/lat.
-# 在这里预置你的常用地点（公司/家等），坐标用高德拾取（GCJ-02）。下面是示例占位，请替换。
+# 在这里预置你的常用地点（家/公司等），坐标用高德拾取器取（GCJ-02）。下面是示例占位，请替换。
 ALIASES = {
-    "公司": {
-        "name": "公司示例",
-        "lng": 116.397428,
-        "lat": 39.90923,
-        "radius_m": 350,
-    },
     "家": {
         "name": "家示例",
         "lng": 116.40,
@@ -105,7 +103,7 @@ def slugify(text):
 def parse_lnglat(value):
     parts = [p.strip() for p in value.split(",")]
     if len(parts) != 2:
-        raise SystemExit("坐标格式应为 lng,lat，例如 116.397428,39.90923")
+        raise SystemExit("坐标格式应为 lng,lat，例如 113.569233,22.372477")
     lng, lat = float(parts[0]), float(parts[1])
     return {"name": value, "lng": lng, "lat": lat, "radius_m": DEFAULT_RADIUS_M}
 

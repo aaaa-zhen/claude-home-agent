@@ -4,6 +4,17 @@
     "notifyService": "notify/mobile_app_phone",
     "frontDoorEntity": "binary_sensor.front_door_contact"
   },
+  "homePod": {
+    "entityId": "media_player.living_room",
+    "ttsProvider": "openai",
+    "defaultVoice": "nova",
+    "openaiModel": "gpt-4o-mini-tts",
+    "openaiInstructions": "请使用自然、温暖的普通话，像家里人当面提醒一样；语速稍慢，停顿自然，不要使用新闻播音腔，也不要添加输入文字以外的内容。",
+    "edgeVoice": "zh-CN-XiaoxiaoNeural"
+  },
+  "livingRoomCamera": {
+    "defaultPreset": "餐桌"
+  },
   "monitor": {
     "presenceDebounceSeconds": 120,
     "temperatureCheckIntervalSeconds": 600,

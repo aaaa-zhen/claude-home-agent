@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>zh_CN</string>
+  <key>CFBundleDisplayName</key>
+  <string>Home Agent Apple Bridge</string>
+  <key>CFBundleExecutable</key>
+  <string>AppleBridge</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.zhen.homeagent.applebridge</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>AppleBridge</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>LSUIElement</key>
+  <true/>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>Home Agent 使用自动化权限在你指定的 iCloud 文件夹中读取和写入 Apple Notes。</string>
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>Home Agent 使用日历权限查询你的近期安排，并按你的明确指令创建日程。</string>
+  <key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+  <string>Home Agent 使用日历写入权限按你的明确指令创建日程。</string>
+  <key>NSRemindersFullAccessUsageDescription</key>
+  <string>Home Agent 使用提醒事项权限创建、查询和完成你明确指定的提醒。</string>
+</dict>
+</plist>

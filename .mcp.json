@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "didi-mcp": {
+      "command": "/Users/zhen/home-agent/weixin-agent/venv/bin/python3",
+      "args": [
+        "/Users/zhen/home-agent/weixin-agent/tools/travel/didi_mcp_proxy.py"
+      ],
+      "env": {}
+    },
+    "homeassistant": {
+      "command": "/Users/zhen/home-agent/weixin-agent/venv/bin/python3",
+      "args": [
+        "/Users/zhen/home-agent/weixin-agent/ha_mcp_server.py"
+      ],
+      "env": {}
+    },
+    "notion": {
+      "type": "http",
+      "url": "http://127.0.0.1:8790/mcp"
+    }
+  }
+}

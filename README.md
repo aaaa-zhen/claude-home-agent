@@ -38,6 +38,8 @@ No heavy code — it's mostly prompt engineering. The agent doesn't just reply, 
 | 🎨 **Image generation** | "Draw me a…" via gpt-image, sent back to WeChat |
 | 🧠 **Persistent memory** | Remembers preferences, devices, history; builds a user profile; learns from corrections |
 | 📷 **Image recognition** | Send a photo (receipt/menu/doc/product) — native multimodal understanding |
+| 🌐 **Browser use** | Drives a dedicated logged-in Chrome profile: read pages, screenshot, fill forms, post messages. Page content is always handled as untrusted data |
+| 🔐 **Password vault** | Credentials sent over WeChat are intercepted *before* the model sees them and stored in the macOS Keychain; the agent injects them into a login form or a subprocess env without ever reading the plaintext |
 | 🔀 **Model switching** | "Switch to Opus / Sonnet" in one message |
 
 ## How it works
@@ -45,6 +47,24 @@ No heavy code — it's mostly prompt engineering. The agent doesn't just reply, 
 ```
 WeChat message → weixin-acp → Claude Code CLI → Home Assistant / various APIs → reply to WeChat
 ```
+
+## Two pieces worth a closer look
+
+**Password vault** — `scripts/secret-vault.mjs`, design notes in
+[`docs/secret-vault.md`](docs/secret-vault.md). People type passwords into chat whether
+you want them to or not, and telling the agent "never record passwords" does not stop the
+plaintext from already being on disk. So the vault intercepts the message at the bridge:
+the secret goes into the macOS Keychain and the model only ever sees
+`[stored in vault: <name>]`. Injection happens in a child process (value via stdin, never
+argv), every use is written to an audit log that records the name and purpose but not the
+value, and background jobs are refused — only a turn that is answering the user can unlock
+anything.
+
+**Browser use** — `scripts/browser-bridge.mjs`, notes in
+[`docs/browser-bridge.md`](docs/browser-bridge.md). A dedicated Chrome profile keeps your
+logins, so the agent can act on sites that have no API. You log in yourself in a visible
+window; the agent never asks for the password. Read paths strip query strings and mark the
+text `untrusted_content`, because instructions found inside a web page are data, not orders.
 
 ## Quick start
 
@@ -104,6 +124,8 @@ MIT
 | 🎨 **AI 图片生成** | "帮我画一张……" 直接发回微信 |
 | 🧠 **持久记忆** | 跨会话记住偏好/设备/历史，积累用户画像，从纠正中学习 |
 | 📷 **图片识别** | 发图（快递单/菜单/文件/商品）原生多模态识别 |
+| 🌐 **浏览器操作** | 驱动一个带登录态的专属 Chrome：读网页、截图、填表、发消息；网页正文一律当作不可信数据处理 |
+| 🔐 **密码箱** | 微信里发来的账号密码在**进模型之前**就被拦截并存进 macOS 钥匙串；登录时注入网页表单或子进程环境变量，助手全程读不到明文 |
 | 🔀 **模型切换** | "切 Opus / 切 Sonnet" 一句话搞定 |
 
 **工作原理**：`微信消息 → weixin-acp → Claude Code CLI → Home Assistant / 各类 API → 回复微信`

@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ProxyAgent } from 'undici';
 import { sendText } from './weixin-send.mjs';
 import { appendRecentContext, formatLocalMinute } from './memory-utils.mjs';
 
@@ -27,6 +28,8 @@ if (fs.existsSync(envPath)) {
 
 const AIHUBMIX_API_KEY = process.env.AIHUBMIX_API_KEY;
 const AIHUBMIX_BASE_URL = process.env.AIHUBMIX_BASE_URL || 'https://aihubmix.com/v1';
+const PROXY_URL = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.https_proxy || process.env.http_proxy || '';
+const PROXY_AGENT = PROXY_URL ? new ProxyAgent(PROXY_URL) : null;
 
 const FEEDS = [
   { source: 'Reddit', feed: 'r/todayilearned', url: 'https://www.reddit.com/r/todayilearned/top/.rss?t=day' },
@@ -50,6 +53,10 @@ function log(message) {
   fs.mkdirSync(MEMORY_DIR, { recursive: true });
   fs.appendFileSync(LOG_FILE, `${line}\n`, 'utf8');
   if (process.stdout.isTTY) console.log(line);
+}
+
+function fetchOptions(options = {}) {
+  return PROXY_AGENT ? { ...options, dispatcher: PROXY_AGENT } : options;
 }
 
 function acquireLock() {
@@ -124,13 +131,13 @@ async function fetchText(url, timeoutMs = 12000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, {
+    const response = await fetch(url, fetchOptions({
       signal: controller.signal,
       headers: {
         'User-Agent': 'weixin-agent-reading-digest/1.0 (personal English learning digest)',
         'Accept': 'application/rss+xml, application/atom+xml, text/xml, text/html;q=0.8, */*;q=0.5',
       },
-    });
+    }));
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.text();
   } finally {
@@ -274,7 +281,7 @@ Output ONLY the above. No extra commentary.`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30000);
   try {
-    const response = await fetch(`${AIHUBMIX_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${AIHUBMIX_BASE_URL}/chat/completions`, fetchOptions({
       method: 'POST',
       signal: controller.signal,
       headers: {
@@ -287,7 +294,7 @@ Output ONLY the above. No extra commentary.`;
         max_tokens: 1000,
         temperature: 0.7,
       }),
-    });
+    }));
     if (!response.ok) {
       const err = await response.text();
       throw new Error(`AiHubMix API error ${response.status}: ${err}`);
@@ -378,7 +385,7 @@ async function main() {
   try {
     const tgMsg = formatForTelegram(message, candidate);
     const BOT_TOKEN = (() => {
-      for (const dir of [SCRIPT_DIR, '/home/ubuntu/telegram-agent']) {
+      for (const dir of [SCRIPT_DIR, '/Users/zhen/home-agent/telegram-agent']) {
         const envFile = path.join(dir, '.env');
         if (fs.existsSync(envFile)) {
           for (const line of fs.readFileSync(envFile, 'utf8').split('\n')) {
@@ -390,17 +397,17 @@ async function main() {
       return null;
     })();
     if (BOT_TOKEN) {
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, fetchOptions({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: process.env.TG_DAILY_CHAT_ID || '',
+          chat_id: '-1003513094448',
           message_thread_id: 8,
           text: tgMsg,
           parse_mode: 'HTML',
           disable_web_page_preview: false,
         }),
-      });
+      }));
     }
   } catch (err) {
     log(`telegram push failed: ${err.message}`);
